@@ -1,0 +1,31 @@
+name: Auto Assign Project Priority
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  assign-priority:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determinar la Prioridad
+        id: determine_priority
+        run: |
+          # Convertir etiquetas del requerimiento a texto plano
+          LABELS=$(echo "${{ toJson(github.event.issue.labels) }}" | tr '[:upper:]' '[:lower:]')
+          TITLE=$(echo "${{ github.event.issue.title }}" | tr '[:upper:]' '[:lower:]')
+
+          # Lógica de asignación de prioridades
+          if echo "$LABELS" | grep -qi "bug" || echo "$TITLE" | grep -qi "error" || echo "$TITLE" | grep -qi "fallo"; then
+            echo "priority_value=High" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -qi "enhancement" || echo "$TITLE" | grep -qi "agregar" || echo "$TITLE" | grep -qi "debe permitir"; then
+            echo "priority_value=Medium" >> $GITHUB_OUTPUT
+          else
+            echo "priority_value=Low" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Asignar al Proyecto y Establecer Prioridad
+        uses: actions/add-to-project@v1
+        with:
+          project-url: https://github.com
+          github-token: ${{ secrets.PROJECT_TOKEN }}
